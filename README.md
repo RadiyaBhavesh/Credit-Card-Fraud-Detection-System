@@ -1,8 +1,3 @@
-[file-tag: code-generated-file-534bc76a-fb59-455b-b9f1-f813fc1e84a2]
-
-Tamari GitHub repository mate ekdam clean ane professional README.md file niche mujab chhe:
-
-Markdown
 # 💳 Credit Card Fraud Detection System
 
 An interactive Machine Learning web application built using **Python**, **Streamlit**, and **Scikit-Learn** to detect fraudulent credit card transactions in real-time.
@@ -11,19 +6,18 @@ An interactive Machine Learning web application built using **Python**, **Stream
 
 ## 📌 Project Overview
 
-Credit card fraud is a significant issue in financial services. This project implements machine learning algorithms (such as Logistic Regression and Random Forest) to identify suspicious transactions. The user interface allows users and analysts to test transaction parameters dynamically and evaluate risk metrics.
+Credit card fraud is a significant issue in financial services. This project implements machine learning algorithms (such as Logistic Regression and Random Forest) to identify suspicious transactions. The user interface allows users and analysts to test transaction parameters dynamically and evaluate risk metrics in real-time.
 
 ---
 
 ## 📁 Project Structure
 
 ```text
-Creadit_card_project/
-├── .idea/                      # IDE configuration files
+Credit-Card-Fraud-Detection-System/
 ├── app/
-│   └── app.py                  # Streamlit web application interface
+│   └── app.py                  # Main Streamlit dashboard interface
 ├── Dataset/
-│   └── creditcard.csv          # Credit card transaction dataset
+│   └── creditcard.csv          # Credit card transaction dataset (Tracked with Git LFS)
 ├── Model/
 │   ├── Model_train.py          # Preprocessing & model training pipeline
 │   ├── project internship.ipynb # Exploratory Data Analysis & experimentation
@@ -32,33 +26,34 @@ Creadit_card_project/
 │       ├── logistic_model.pkl
 │       ├── random_forest_model.pkl
 │       └── scaler.pkl
+├── .gitattributes              # Git LFS Configuration
 ├── .gitignore                  # Git ignore rules
 ├── README.md                   # Project documentation
 └── requirements.txt            # Python dependencies
-🚀 Features
-Data Preprocessing & Feature Scaling: Handles imbalanced transaction data and standardizes numerical features.
+🚀 Key Features
+Data Preprocessing & Feature Scaling: Robust handling of imbalanced transaction data with standard scaling.
 
-Multiple Model Support: Trained on Logistic Regression and Ensemble Random Forest classifiers.
+Multiple Model Evaluation: Evaluates both Logistic Regression and Ensemble Random Forest Classifiers.
 
-Interactive UI: Real-time web panel built with Streamlit for manual test inputs and fraud predictions.
+Interactive Dashboard: Dynamic input controls, test transaction triggers, and visual analytics via Streamlit.
 
-Model Persistence: Model artifacts are serialized using joblib / pickle for easy deployment.
+Git LFS Integration: Large model artifacts and datasets are managed efficiently for web deployment.
 
 🛠️ Tech Stack
 Language: Python
 
-ML Libraries: Scikit-Learn, Pandas, NumPy
+Machine Learning: Scikit-Learn, Pandas, NumPy
 
-Visualization: Matplotlib, Seaborn
+Data Visualization: Matplotlib, Seaborn
 
-Web Framework: Streamlit
+Web Interface: Streamlit
 
 ⚙️ Installation & Local Setup
 1. Clone the repository
 Bash
-git clone [https://github.com/](https://github.com/)<your-username>/Creadit_card_project.git
-cd Creadit_card_project
-2. Create a virtual environment (Recommended)
+git clone [https://github.com/RadiyaBhavesh/Credit-Card-Fraud-Detection-System.git](https://github.com/RadiyaBhavesh/Credit-Card-Fraud-Detection-System.git)
+cd Credit-Card-Fraud-Detection-System
+2. Create a virtual environment (Optional but Recommended)
 Bash
 # Windows
 python -m venv venv
@@ -72,22 +67,14 @@ Bash
 pip install -r requirements.txt
 💻 Running the Application
 Train the Models
-To run data preprocessing and train models:
+To execute data preprocessing and train the classification models:
 
 Bash
 python Model/Model_train.py
 Launch Streamlit Dashboard
-To run the interactive UI:
+To run the interactive web interface locally:
 
 Bash
 streamlit run app/app.py
-📊 Dataset Information
-The project utilizes credit card transaction data containing numerical features resulting from PCA transformation to preserve privacy, alongside Time and Amount attributes.
-
-Note: Due to file size limits on GitHub, large dataset files (creditcard.csv) and .pkl artifacts are excluded via .gitignore. Place creditcard.csv inside the Dataset/ folder locally before training.
-
 📜 License
-Distributed under the MIT License.
-
-
-Aa code ne direct download karva mate upar **`README.md`** file button par click karo, a
+This project is licensed under the MIT License - see the LICENSE file for details.
