@@ -304,65 +304,82 @@ if "amount_val" not in st.session_state:
     st.session_state.amount_val = 100.0
 
 
-def set_demo(values, time_value, amount_value):
+def apply_input_values(values, time_value, amount_value):
     st.session_state.time_val = float(time_value)
     st.session_state.amount_val = float(amount_value)
-    st.session_state.v_values = {
-        f"V{i}": float(values[i - 1]) for i in range(1, 29)
-    }
+    for i in range(1, 29):
+        st.session_state[f"input_V{i}"] = float(values[i - 1])
+
+
+def clear_prediction_inputs():
+    st.session_state.time_val = 50000.0
+    st.session_state.amount_val = 100.0
+    for i in range(1, 29):
+        st.session_state[f"input_V{i}"] = 0.0
+    st.session_state.pop("prediction_result", None)
 
 
 b1, b2, b3 = st.columns(3)
 
 with b1:
     if st.button("⚡ Fill Demo Case", use_container_width=True):
-        set_demo([0.0] * 28, 1000.0, 150.0)
+        apply_input_values([0.0] * 28, 1000.0, 150.0)
         st.rerun()
 
 with b2:
     if st.button("🚨 Fill High-Risk Demo", use_container_width=True):
-        set_demo([-5.0, -2.0, -1.0, -3.0, -1.0, -2.0, -1.0,
-                  -4.0, -2.0, -3.0, -1.0, -2.0, -1.0, -2.0,
-                  -3.0, -2.0, -1.0, -2.0, -3.0, -1.0, -2.0,
-                  -3.0, -2.0, -1.0, -2.0, -3.0, -1.0, -2.0], 406.0, 1150.0)
+        apply_input_values(
+            [-5.0, -2.0, -1.0, -3.0, -1.0, -2.0, -1.0,
+             -4.0, -2.0, -3.0, -1.0, -2.0, -1.0, -2.0,
+             -3.0, -2.0, -1.0, -2.0, -3.0, -1.0, -2.0,
+             -3.0, -2.0, -1.0, -2.0, -3.0, -1.0, -2.0],
+            406.0,
+            1150.0,
+        )
         st.rerun()
 
 with b3:
-    if st.button("🔄 Reset", use_container_width=True):
-        set_demo([0.0] * 28, 50000.0, 100.0)
-        st.session_state.pop("prediction_result", None)
+    if st.button("🔄 Reset All Inputs", use_container_width=True):
+        clear_prediction_inputs()
         st.rerun()
 
 time_input = st.number_input(
     "⏱️ Transaction Time",
     min_value=0.0,
-    value=float(st.session_state.time_val),
+    value=float(st.session_state.get("input_time", 50000.0)),
+    key="input_time",
 )
 amount_input = st.number_input(
     "💰 Transaction Amount",
     min_value=0.0,
-    value=float(st.session_state.amount_val),
+    value=float(st.session_state.get("input_amount", 100.0)),
     format="%.2f",
+    key="input_amount",
 )
 
-st.subheader("🔎 V1–V28 Transaction Features")
-st.caption(
-    "The previous version grouped seven V-features into one value. "
-    "This version uses all 28 model features individually."
-)
+st.subheader("🔎 Transaction Features")
+st.caption("V1–V28 are divided into 4 groups. Each group contains 7 individual inputs.")
 
 v_values = {}
-for start in (1, 8, 15, 22):
-    with st.expander(f"Features V{start}–V{start + 6}", expanded=(start == 1)):
-        cols = st.columns(4)
-        for offset, i in enumerate(range(start, start + 7)):
-            with cols[offset % 4]:
-                v_values[f"V{i}"] = st.number_input(
-                    f"V{i}",
-                    value=float(st.session_state.v_values.get(f"V{i}", 0.0)),
-                    format="%.6f",
-                    key=f"input_V{i}",
-                )
+groups = [
+    (1, 7, "Group 1 — V1 to V7"),
+    (8, 14, "Group 2 — V8 to V14"),
+    (15, 21, "Group 3 — V15 to V21"),
+    (22, 28, "Group 4 — V22 to V28"),
+]
+
+for start, end, label in groups:
+    st.markdown(f"**{label}**")
+    cols = st.columns(4)
+    for offset, i in enumerate(range(start, end + 1)):
+        with cols[offset % 4]:
+            v_values[f"V{i}"] = st.number_input(
+                f"V{i}",
+                value=float(st.session_state.get(f"input_V{i}", 0.0)),
+                format="%.6f",
+                key=f"input_V{i}",
+            )
+    st.write("")
 
 predict_click = st.button(
     "🔍 Predict Transaction",
