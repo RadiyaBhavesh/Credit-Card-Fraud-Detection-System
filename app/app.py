@@ -14,27 +14,31 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+# ============================================================
+# PATH CONFIGURATION (FIXED FOR STREAMLIT CLOUD & LOCAL)
+# ============================================================
+# Current app directory (app/)
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# ============================================================
-# PATH CONFIGURATION (FIXED FOR APP/ DIRECTORY)
-# ============================================================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Project Root Directory (Repo ka main folder)
+ROOT_DIR = os.path.abspath(os.path.join(APP_DIR, ".."))
 
 MODEL_PATHS = [
-    os.path.join(BASE_DIR, "..", "Model", "saved_models", "fraud_detection_all_models.pkl"),
-    os.path.join(BASE_DIR, "..", "model", "saved_models", "fraud_detection_all_models.pkl"),
-    os.path.join(BASE_DIR, "Model", "saved_models", "fraud_detection_all_models.pkl"),
-    os.path.join(BASE_DIR, "saved_models", "fraud_detection_all_models.pkl"),
-    os.path.join(BASE_DIR, "fraud_detection_all_models.pkl")
+    # Main Repo Root Paths
+    os.path.join(ROOT_DIR, "Model", "saved_models", "fraud_detection_all_models.pkl"),
+    os.path.join(ROOT_DIR, "model", "saved_models", "fraud_detection_all_models.pkl"),
+    # Current Directory Relative Paths
+    os.path.join(APP_DIR, "..", "Model", "saved_models", "fraud_detection_all_models.pkl"),
+    os.path.normpath(os.path.join(APP_DIR, "../Model/saved_models/fraud_detection_all_models.pkl")),
+    "Model/saved_models/fraud_detection_all_models.pkl"
 ]
 
 DATASET_PATHS = [
-    os.path.join(BASE_DIR, "..", "Dataset", "creditcard.csv"),
-    os.path.join(BASE_DIR, "..", "dataset", "creditcard.csv"),
-    os.path.join(BASE_DIR, "Dataset", "creditcard.csv"),
-    os.path.join(BASE_DIR, "creditcard.csv")
+    os.path.join(ROOT_DIR, "Dataset", "creditcard.csv"),
+    os.path.join(ROOT_DIR, "dataset", "creditcard.csv"),
+    os.path.join(APP_DIR, "..", "Dataset", "creditcard.csv"),
+    "Dataset/creditcard.csv"
 ]
-
 # ============================================================
 # LOAD MODEL & DATASET
 # ============================================================
