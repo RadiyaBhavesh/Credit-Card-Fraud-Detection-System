@@ -16,25 +16,24 @@ st.set_page_config(
 )
 
 # ============================================================
-# PATH CONFIGURATION
+# PATH CONFIGURATION (FIXED FOR APP/ DIRECTORY)
 # ============================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 MODEL_PATHS = [
+    os.path.join(BASE_DIR, "..", "Model", "saved_models", "fraud_detection_all_models.pkl"),
+    os.path.join(BASE_DIR, "..", "model", "saved_models", "fraud_detection_all_models.pkl"),
     os.path.join(BASE_DIR, "Model", "saved_models", "fraud_detection_all_models.pkl"),
-    os.path.join(BASE_DIR, "model", "saved_models", "fraud_detection_all_models.pkl"),
     os.path.join(BASE_DIR, "saved_models", "fraud_detection_all_models.pkl"),
-    os.path.join(BASE_DIR, "fraud_detection_all_models.pkl"),
-    r"../Model/saved_models/fraud_detection_all_models.pkl"
+    os.path.join(BASE_DIR, "fraud_detection_all_models.pkl")
 ]
 
 DATASET_PATHS = [
-    os.path.join(BASE_DIR, "Dataset", "creditcard.csv"),
     os.path.join(BASE_DIR, "..", "Dataset", "creditcard.csv"),
-    os.path.join(BASE_DIR, "Model", "..", "Dataset", "creditcard.csv"),
-    r"C:\Users\bhave\OneDrive\Desktop\Creadit_card_project\Dataset\creditcard.csv"
+    os.path.join(BASE_DIR, "..", "dataset", "creditcard.csv"),
+    os.path.join(BASE_DIR, "Dataset", "creditcard.csv"),
+    os.path.join(BASE_DIR, "creditcard.csv")
 ]
-
 
 # ============================================================
 # LOAD MODEL & DATASET
@@ -52,7 +51,6 @@ def load_saved_data():
                 return None, f"Error loading model:\n{e}"
     return None, "❌ Model file not found."
 
-
 @st.cache_data
 def load_dataset():
     for path in DATASET_PATHS:
@@ -64,7 +62,6 @@ def load_dataset():
             except Exception as e:
                 return None, f"Error loading dataset:\n{e}"
     return None, "❌ Could not find Dataset/creditcard.csv"
-
 
 data_pkg, model_error = load_saved_data()
 if data_pkg is None:
@@ -113,17 +110,17 @@ st.sidebar.info(
 st.markdown("""
     <style>
     .stApp { background: linear-gradient(135deg, #f5f7ff 0%, #eef4ff 50%, #f8f5ff 100%); color: #1e293b; }
-
+    
     .block-container { 
         max-width: 1450px; 
         padding-left: 2rem; 
         padding-right: 2rem; 
     }
-
+    
     .dashboard-title { font-size: 32px; font-weight: 800; margin-bottom: 5px; }
     .title-text { background: linear-gradient(90deg, #2563eb, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .section-title { color: #1e3a8a; font-size: 20px; font-weight: 750; margin-top: 25px; margin-bottom: 15px; padding-left: 10px; border-left: 5px solid #6366f1; }
-
+    
     .result-card { text-align: center; padding: 25px; border-radius: 18px; margin-top: 15px; color: white; }
     .result-card h1 { font-size: 26px; margin-bottom: 10px; color: white; }
     .risk-number { font-size: 40px; font-weight: 800; color: white; }
@@ -165,9 +162,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Header
-st.markdown(
-    '<div class="dashboard-title">💳 <span class="title-text">Credit Card Fraud Detection Dashboard</span></div>',
-    unsafe_allow_html=True)
+st.markdown('<div class="dashboard-title">💳 <span class="title-text">Credit Card Fraud Detection Dashboard</span></div>', unsafe_allow_html=True)
 
 # ============================================================
 # SECTION 1: TOP KPIs
@@ -179,8 +174,7 @@ fraud_cases = int((df["Class"] == 1).sum())
 legitimate_cases = int((df["Class"] == 0).sum())
 fraud_rate = (fraud_cases / total_transactions * 100) if total_transactions > 0 else 0
 
-selected_metrics = data_pkg["random_forest_metrics"] if model_choice == "Random Forest" else data_pkg[
-    "logistic_metrics"]
+selected_metrics = data_pkg["random_forest_metrics"] if model_choice == "Random Forest" else data_pkg["logistic_metrics"]
 model_f1 = selected_metrics["f1"]
 
 k1, k2, k3, k4 = st.columns(4)
@@ -231,8 +225,7 @@ with an_col2:
 # ============================================================
 # SECTION 4: PREDICTION (4 INPUTS & ACTION BUTTONS)
 # ============================================================
-st.markdown('<div class="section-title">4. Simple Transaction Input (Divided in 4 Groups)</div>',
-            unsafe_allow_html=True)
+st.markdown('<div class="section-title">4. Simple Transaction Input (Divided in 4 Groups)</div>', unsafe_allow_html=True)
 
 # Action Buttons
 btn_c1, btn_c2, btn_c3 = st.columns(3)
@@ -267,8 +260,7 @@ p_col1, p_col2 = st.columns(2)
 with p_col1:
     time_input = st.number_input("⏱️ Transaction Time", min_value=0.0, value=st.session_state.get('time_val', 50000.0))
 with p_col2:
-    amount_input = st.number_input("💰 Transaction Amount (₹)", min_value=0.0,
-                                   value=st.session_state.get('amount_val', 100.0), format="%.2f")
+    amount_input = st.number_input("💰 Transaction Amount (₹)", min_value=0.0, value=st.session_state.get('amount_val', 100.0), format="%.2f")
 
 st.subheader("⚙️ Main Anomaly Risk Indicators (Divided in 4 Inputs)")
 
@@ -288,14 +280,14 @@ predict_click = st.button("🔍 Predict Transaction", type="primary", use_contai
 # Prediction Logic
 if predict_click:
     input_dict = {"Time": time_input}
-
+    
     for i in range(1, 8): input_dict[f"V{i}"] = group1
     for i in range(8, 15): input_dict[f"V{i}"] = group2
     for i in range(15, 22): input_dict[f"V{i}"] = group3
     for i in range(22, 29): input_dict[f"V{i}"] = group4
-
+    
     input_dict["Amount"] = amount_input
-
+    
     input_df = pd.DataFrame([input_dict])[feature_names]
 
     if model_choice == "Logistic Regression":
