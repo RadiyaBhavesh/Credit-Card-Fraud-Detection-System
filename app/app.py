@@ -166,13 +166,39 @@ st.markdown(
         background: rgba(99, 102, 241, 0.08);
         border-radius: 0 12px 12px 0;
     }
-    div[data-testid="stMetric"] {
-        background: linear-gradient(135deg, #ffffff, #eef2ff);
+    .kpi-card {
+        min-height: 150px;
+        padding: 18px 16px;
+        border-radius: 18px;
+        background: linear-gradient(145deg, #ffffff 0%, #eef2ff 100%);
         border: 1px solid #c7d2fe;
-        border-radius: 16px;
-        padding: 16px 14px;
-        box-shadow: 0 6px 18px rgba(30, 64, 175, 0.10);
-        min-height: 105px;
+        box-shadow: 0 8px 22px rgba(30, 64, 175, 0.12);
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    .kpi-icon {
+        font-size: 27px;
+        margin-bottom: 5px;
+    }
+    .kpi-heading {
+        color: #1e3a8a !important;
+        font-size: 13px;
+        font-weight: 850;
+        letter-spacing: 0.4px;
+        opacity: 1 !important;
+    }
+    .kpi-value {
+        color: #111827 !important;
+        font-size: 30px;
+        line-height: 1.25;
+        font-weight: 900;
+        margin-top: 8px;
+    }
+    .kpi-subtitle {
+        color: #64748b !important;
+        font-size: 11px;
+        font-weight: 600;
+        margin-top: 5px;
     }
     div[data-testid="stMetricLabel"] p {
         color: #334155 !important;
@@ -290,13 +316,47 @@ else:
     fraud_rate = 0
 
 k1, k2, k3, k4 = st.columns(4)
-k1.metric("Total Transactions", f"{total_transactions:,}" if total_transactions else "N/A")
-k2.metric("Fraud Cases", f"{fraud_cases:,}" if total_transactions else "N/A")
-k3.metric("Fraud Rate", f"{fraud_rate:.2f}%" if total_transactions else "N/A")
-k4.metric(
-    "Model F1-Score",
-    f"{selected_metrics.get('f1', 0):.4f}" if selected_metrics else "N/A",
-)
+
+kpi_cards = [
+    (
+        "💳",
+        "TOTAL TRANSACTIONS",
+        f"{total_transactions:,}" if total_transactions else "N/A",
+        "All transactions in dataset",
+    ),
+    (
+        "🚨",
+        "FRAUD CASES",
+        f"{fraud_cases:,}" if total_transactions else "N/A",
+        "Detected fraud transactions",
+    ),
+    (
+        "📊",
+        "FRAUD RATE",
+        f"{fraud_rate:.2f}%" if total_transactions else "N/A",
+        "Fraud percentage of total",
+    ),
+    (
+        "🎯",
+        "MODEL F1-SCORE",
+        f"{selected_metrics.get('f1', 0):.4f}" if selected_metrics else "N/A",
+        f"{model_choice} performance",
+    ),
+]
+
+for col, (icon, heading, value, subtitle) in zip((k1, k2, k3, k4), kpi_cards):
+    with col:
+        st.markdown(
+            f'''
+            <div class="kpi-card">
+                <div class="kpi-icon">{icon}</div>
+                <div class="kpi-heading">{heading}</div>
+                <div class="kpi-value">{value}</div>
+                <div class="kpi-subtitle">{subtitle}</div>
+            </div>
+            ''',
+            unsafe_allow_html=True,
+        )
 
 if df is not None and {"Class", "Amount", "Time"}.issubset(df.columns):
     st.markdown('<div class="section-title">2. Transaction Overview</div>', unsafe_allow_html=True)
