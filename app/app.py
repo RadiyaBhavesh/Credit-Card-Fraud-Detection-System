@@ -347,6 +347,9 @@ if "amount_val" not in st.session_state:
 
 
 def apply_input_values(values, time_value, amount_value):
+    # Update the actual widget keys so the UI visibly changes immediately.
+    st.session_state["input_time"] = float(time_value)
+    st.session_state["input_amount"] = float(amount_value)
     st.session_state.time_val = float(time_value)
     st.session_state.amount_val = float(amount_value)
     for i in range(1, 29):
@@ -354,6 +357,9 @@ def apply_input_values(values, time_value, amount_value):
 
 
 def clear_prediction_inputs():
+    # Clear every widget key, not only helper state, so Reset really resets the form.
+    st.session_state["input_time"] = 50000.0
+    st.session_state["input_amount"] = 100.0
     st.session_state.time_val = 50000.0
     st.session_state.amount_val = 100.0
     for i in range(1, 29):
