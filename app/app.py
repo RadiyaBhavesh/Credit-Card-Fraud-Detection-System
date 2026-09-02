@@ -1,142 +1,198 @@
+import io
 import os
 import pickle
-import pandas as pd
-import numpy as np
-import streamlit as st
-import matplotlib.pyplot as plt
 
-# ============================================================
-# PAGE CONFIG
-# ============================================================
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import requests
+import streamlit as st
+
+
 st.set_page_config(
     page_title="Credit Card Fraud Detection Dashboard",
     page_icon="💳",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
-# ============================================================
-# PATH CONFIGURATION (FIXED FOR STREAMLIT CLOUD & LOCAL)
-# ============================================================
-# Current app directory (app/)
+
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Project Root Directory (Repo ka main folder)
 ROOT_DIR = os.path.abspath(os.path.join(APP_DIR, ".."))
+REPO_OWNER = "RadiyaBhavesh"
+REPO_NAME = "Credit-Card-Fraud-Detection-System"
+BRANCH = "main"
 
-MODEL_PATHS = [
-    # Main Repo Root Paths
-    os.path.join(ROOT_DIR, "Model", "saved_models", "fraud_detection_all_models.pkl"),
-    os.path.join(ROOT_DIR, "model", "saved_models", "fraud_detection_all_models.pkl"),
-    # Current Directory Relative Paths
-    os.path.join(APP_DIR, "..", "Model", "saved_models", "fraud_detection_all_models.pkl"),
-    os.path.normpath(os.path.join(APP_DIR, "../Model/saved_models/fraud_detection_all_models.pkl")),
-    "Model/saved_models/fraud_detection_all_models.pkl"
-]
+MODEL_RELATIVE_PATH = "Model/saved_models/fraud_detection_all_models.pkl"
+DATASET_RELATIVE_PATH = "Dataset/creditcard.csv"
 
-DATASET_PATHS = [
-    os.path.join(ROOT_DIR, "Dataset", "creditcard.csv"),
-    os.path.join(ROOT_DIR, "dataset", "creditcard.csv"),
-    os.path.join(APP_DIR, "..", "Dataset", "creditcard.csv"),
-    "Dataset/creditcard.csv"
-]
-# ============================================================
-# LOAD MODEL & DATASET
-# ============================================================
-@st.cache_resource
-def load_saved_data():
-    for path in MODEL_PATHS:
-        path = os.path.normpath(path)
-        if os.path.isfile(path):
-            try:
-                with open(path, "rb") as file:
-                    package = pickle.load(file)
-                return package, None
-            except Exception as e:
-                return None, f"Error loading model:\n{e}"
-    return None, "❌ Model file not found."
+LOCAL_MODEL_PATH = os.path.join(ROOT_DIR, MODEL_RELATIVE_PATH)
+LOCAL_DATASET_PATH = os.path.join(ROOT_DIR, DATASET_RELATIVE_PATH)
 
-@st.cache_data
+MODEL_MEDIA_URL = (
+    f"https://media.githubusercontent.com/media/{REPO_OWNER}/"
+    f"{REPO_NAME}/{BRANCH}/{MODEL_RELATIVE_PATH}"
+)
+DATASET_MEDIA_URL = (
+    f"https://media.githubusercontent.com/media/{REPO_OWNER}/"
+    f"{REPO_NAME}/{BRANCH}/{DATASET_RELATIVE_PATH}"
+)
+
+
+def _is_lfs_pointer(data: bytes) -> bool:
+    return data.startswith(b"version https://git-lfs.github.com/spec/v1")
+
+
+@st.cache_resource(show_spinner="Loading ML model...")
+def load_model():
+    errors = []
+
+    if os.path.isfile(LOCAL_MODEL_PATH):
+        try:
+            with open(LOCAL_MODEL_PATH, "rb") as f:
+                raw = f.read()
+            if not _is_lfs_pointer(raw):
+                return pickle.load(io.BytesIO(raw)), "local"
+            errors.append("Local model is a Git LFS pointer.")
+        except Exception as exc:
+            errors.append(f"Local model error: {exc}")
+
+    try:
+        response = requests.get(
+            MODEL_MEDIA_URL,
+            timeout=120,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        if _is_lfs_pointer(response.content):
+            raise RuntimeError("GitHub returned an LFS pointer instead of the model.")
+        package = pickle.load(io.BytesIO(response.content))
+        return package, "GitHub LFS"
+    except Exception as exc:
+        errors.append(f"GitHub LFS model download failed: {exc}")
+
+    return None, " | ".join(errors)
+
+
+@st.cache_data(show_spinner="Loading transaction dataset...")
 def load_dataset():
-    for path in DATASET_PATHS:
-        path = os.path.normpath(path)
-        if os.path.isfile(path):
-            try:
-                df = pd.read_csv(path)
-                return df, None
-            except Exception as e:
-                return None, f"Error loading dataset:\n{e}"
-    return None, "❌ Could not find Dataset/creditcard.csv"
+    if os.path.isfile(LOCAL_DATASET_PATH):
+        try:
+            df = pd.read_csv(LOCAL_DATASET_PATH)
+            return df, None
+        except Exception as exc:
+            local_error = str(exc)
+    else:
+        local_error = "Local dataset file not found."
 
-data_pkg, model_error = load_saved_data()
+    try:
+        response = requests.get(
+            DATASET_MEDIA_URL,
+            timeout=180,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        if _is_lfs_pointer(response.content):
+            raise RuntimeError("GitHub returned an LFS pointer instead of the dataset.")
+        df = pd.read_csv(io.BytesIO(response.content))
+        return df, None
+    except Exception as exc:
+        return None, f"{local_error} GitHub LFS download failed: {exc}"
+
+
+def build_default_features():
+    return ["Time"] + [f"V{i}" for i in range(1, 29)] + ["Amount"]
+
+
+data_pkg, model_source = load_model()
+
 if data_pkg is None:
-    st.error(model_error)
+    st.error("❌ ML model could not be loaded.")
+    st.info(
+        "The repository stores the trained model with Git LFS. "
+        "This app now tries both the local file and GitHub's LFS media endpoint."
+    )
+    st.code(model_source)
+    st.stop()
+
+scaler = data_pkg.get("scaler")
+lr_model = data_pkg.get("logistic_model")
+rf_model = data_pkg.get("random_forest_model")
+best_model_name = data_pkg.get("best_model_name", "Random Forest")
+feature_names = data_pkg.get("feature_names", build_default_features())
+
+if scaler is None or lr_model is None or rf_model is None:
+    st.error("❌ Model package is incomplete.")
+    st.write("Required keys: scaler, logistic_model, random_forest_model.")
     st.stop()
 
 df, dataset_error = load_dataset()
-if df is None:
-    st.error(dataset_error)
-    st.stop()
 
-scaler = data_pkg["scaler"]
-lr_model = data_pkg["logistic_model"]
-rf_model = data_pkg["random_forest_model"]
+if dataset_error:
+    st.warning(
+        "Dataset could not be loaded. Prediction still works, but dataset-based "
+        "KPIs and charts are unavailable."
+    )
 
-best_model_name = data_pkg.get("best_model_name", "Random Forest")
-feature_names = data_pkg.get("feature_names", ["Time"] + [f"V{i}" for i in range(1, 29)] + ["Amount"])
-
-# ============================================================
-# SIDEBAR CONFIGURATION
-# ============================================================
-st.sidebar.markdown("## ⚙️ Model Configuration")
-
-model_choice = st.sidebar.radio(
-    "Select ML Algorithm:",
-    ["Random Forest", "Logistic Regression"],
-    index=0
-)
-
-selected_model = rf_model if model_choice == "Random Forest" else lr_model
-
-st.sidebar.markdown("---")
-st.sidebar.info(
-    f"""
-    **Best Model**
-    {best_model_name}
-
-    **Features Used**
-    Time + 4 Major V-Groups + Amount
+st.markdown(
     """
-)
-
-# ============================================================
-# MOBILE RESPONSIVE CUSTOM CSS
-# ============================================================
-st.markdown("""
     <style>
-    .stApp { background: linear-gradient(135deg, #f5f7ff 0%, #eef4ff 50%, #f8f5ff 100%); color: #1e293b; }
-    
-    .block-container { 
-        max-width: 1450px; 
-        padding-left: 2rem; 
-        padding-right: 2rem; 
+    .stApp {
+        background: linear-gradient(135deg, #f5f7ff 0%, #eef4ff 50%, #f8f5ff 100%);
+        color: #1e293b;
     }
-    
-    .dashboard-title { font-size: 32px; font-weight: 800; margin-bottom: 5px; }
-    .title-text { background: linear-gradient(90deg, #2563eb, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .section-title { color: #1e3a8a; font-size: 20px; font-weight: 750; margin-top: 25px; margin-bottom: 15px; padding-left: 10px; border-left: 5px solid #6366f1; }
-    
-    .result-card { text-align: center; padding: 25px; border-radius: 18px; margin-top: 15px; color: white; }
-    .result-card h1 { font-size: 26px; margin-bottom: 10px; color: white; }
-    .risk-number { font-size: 40px; font-weight: 800; color: white; }
-    .legitimate { background: linear-gradient(135deg, #0f5132, #198754); border: 2px solid #20c997; }
-    .fraud { background: linear-gradient(135deg, #842029, #dc3545); border: 2px solid #ff6b6b; }
-
-    /* MOBILE RESPONSIVE MEDIA QUERIES */
+    .block-container {
+        max-width: 1450px;
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+    .dashboard-title {
+        font-size: 32px;
+        font-weight: 800;
+        margin-bottom: 5px;
+    }
+    .title-text {
+        background: linear-gradient(90deg, #2563eb, #7c3aed);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .section-title {
+        color: #1e3a8a;
+        font-size: 20px;
+        font-weight: 750;
+        margin-top: 25px;
+        margin-bottom: 15px;
+        padding-left: 10px;
+        border-left: 5px solid #6366f1;
+    }
+    .result-card {
+        text-align: center;
+        padding: 25px;
+        border-radius: 18px;
+        margin-top: 15px;
+        color: white;
+    }
+    .result-card h1 {
+        font-size: 26px;
+        margin-bottom: 10px;
+        color: white;
+    }
+    .risk-number {
+        font-size: 40px;
+        font-weight: 800;
+        color: white;
+    }
+    .legitimate {
+        background: linear-gradient(135deg, #0f5132, #198754);
+        border: 2px solid #20c997;
+    }
+    .fraud {
+        background: linear-gradient(135deg, #842029, #dc3545);
+        border: 2px solid #ff6b6b;
+    }
     @media (max-width: 768px) {
         .block-container {
             padding-left: 0.8rem !important;
             padding-right: 0.8rem !important;
-            padding-top: 1rem !important;
         }
         .dashboard-title {
             font-size: 24px !important;
@@ -144,16 +200,6 @@ st.markdown("""
         }
         .section-title {
             font-size: 18px !important;
-            margin-top: 18px !important;
-        }
-        .result-card {
-            padding: 15px !important;
-        }
-        .result-card h1 {
-            font-size: 20px !important;
-        }
-        .risk-number {
-            font-size: 32px !important;
         }
         div[data-testid="column"] {
             width: 100% !important;
@@ -163,208 +209,273 @@ st.markdown("""
         }
     }
     </style>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True,
+)
 
-# Header
-st.markdown('<div class="dashboard-title">💳 <span class="title-text">Credit Card Fraud Detection Dashboard</span></div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="dashboard-title">💳 <span class="title-text">'
+    "Credit Card Fraud Detection Dashboard</span></div>",
+    unsafe_allow_html=True,
+)
 
-# ============================================================
-# SECTION 1: TOP KPIs
-# ============================================================
+st.sidebar.markdown("## ⚙️ Model Configuration")
+model_choice = st.sidebar.radio(
+    "Select ML Algorithm:",
+    ["Random Forest", "Logistic Regression"],
+    index=0 if best_model_name == "Random Forest" else 1,
+)
+selected_model = rf_model if model_choice == "Random Forest" else lr_model
+
+st.sidebar.success(f"Model loaded from: {model_source}")
+st.sidebar.info(f"Best trained model: {best_model_name}")
+
+selected_metrics = (
+    data_pkg.get("random_forest_metrics", {})
+    if model_choice == "Random Forest"
+    else data_pkg.get("logistic_metrics", {})
+)
+
 st.markdown('<div class="section-title">1. Top KPIs</div>', unsafe_allow_html=True)
 
-total_transactions = len(df)
-fraud_cases = int((df["Class"] == 1).sum())
-legitimate_cases = int((df["Class"] == 0).sum())
-fraud_rate = (fraud_cases / total_transactions * 100) if total_transactions > 0 else 0
-
-selected_metrics = data_pkg["random_forest_metrics"] if model_choice == "Random Forest" else data_pkg["logistic_metrics"]
-model_f1 = selected_metrics["f1"]
+if df is not None and "Class" in df.columns:
+    total_transactions = len(df)
+    fraud_cases = int((df["Class"] == 1).sum())
+    legitimate_cases = int((df["Class"] == 0).sum())
+    fraud_rate = fraud_cases / total_transactions * 100 if total_transactions else 0
+else:
+    total_transactions = legitimate_cases = fraud_cases = 0
+    fraud_rate = 0
 
 k1, k2, k3, k4 = st.columns(4)
-k1.metric("Total Transactions", f"{total_transactions:,}")
-k2.metric("Fraud Cases", f"{fraud_cases:,}")
-k3.metric("Fraud Rate", f"{fraud_rate:.2f}%")
-k4.metric("Model F1-Score", f"{model_f1:.4f}")
+k1.metric("Total Transactions", f"{total_transactions:,}" if total_transactions else "N/A")
+k2.metric("Fraud Cases", f"{fraud_cases:,}" if total_transactions else "N/A")
+k3.metric("Fraud Rate", f"{fraud_rate:.2f}%" if total_transactions else "N/A")
+k4.metric(
+    "Model F1-Score",
+    f"{selected_metrics.get('f1', 0):.4f}" if selected_metrics else "N/A",
+)
 
-# ============================================================
-# SECTION 2: OVERVIEW
-# ============================================================
-st.markdown('<div class="section-title">2. Overview</div>', unsafe_allow_html=True)
+if df is not None and {"Class", "Amount", "Time"}.issubset(df.columns):
+    st.markdown('<div class="section-title">2. Transaction Overview</div>', unsafe_allow_html=True)
+    ov_col1, ov_col2 = st.columns(2)
 
-ov_col1, ov_col2 = st.columns(2)
-with ov_col1:
-    st.subheader("Fraud vs Legitimate Transactions")
-    chart_data = pd.DataFrame({"Type": ["Legitimate", "Fraud"], "Count": [legitimate_cases, fraud_cases]})
-    st.bar_chart(chart_data.set_index("Type"))
+    with ov_col1:
+        st.subheader("Fraud vs Legitimate Transactions")
+        chart_data = pd.DataFrame(
+            {
+                "Type": ["Legitimate", "Fraud"],
+                "Count": [legitimate_cases, fraud_cases],
+            }
+        )
+        st.bar_chart(chart_data.set_index("Type"))
 
-with ov_col2:
-    st.subheader("Distribution Breakdown")
-    st.dataframe(chart_data, use_container_width=True, hide_index=True)
-    st.info("Notice the high imbalance: Precision & Recall are critical evaluation metrics for this dataset.")
+    with ov_col2:
+        st.subheader("Amount Distribution")
+        fig, ax = plt.subplots(figsize=(6, 3.5))
+        ax.hist(df["Amount"], bins=40)
+        ax.set_xlabel("Amount")
+        ax.set_ylabel("Frequency")
+        st.pyplot(fig, clear_figure=True)
 
-# ============================================================
-# SECTION 3: TRANSACTION ANALYSIS
-# ============================================================
-st.markdown('<div class="section-title">3. Transaction Analysis</div>', unsafe_allow_html=True)
-
-an_col1, an_col2 = st.columns(2)
-with an_col1:
-    st.subheader("💰 Amount Distribution")
-    fig, ax = plt.subplots(figsize=(6, 3.5))
-    ax.hist(df["Amount"], bins=40, color="#6366f1")
-    ax.set_xlabel("Amount (₹)")
-    ax.set_ylabel("Frequency")
-    st.pyplot(fig, clear_figure=True)
-
-with an_col2:
-    st.subheader("📈 Fraud Trend Over Time")
+    st.markdown('<div class="section-title">3. Fraud Trend</div>', unsafe_allow_html=True)
     fraud_df = df[df["Class"] == 1].copy()
-    if len(fraud_df) > 0:
+    if not fraud_df.empty:
         fraud_df["Time Bin"] = pd.cut(fraud_df["Time"], bins=15)
         trend = fraud_df.groupby("Time Bin", observed=False).size()
-        trend_df = pd.DataFrame({"Time Bins": [str(x) for x in trend.index], "Fraud Cases": trend.values})
+        trend_df = pd.DataFrame(
+            {
+                "Time Bins": [str(x) for x in trend.index],
+                "Fraud Cases": trend.values,
+            }
+        )
         st.line_chart(trend_df.set_index("Time Bins"))
 
-# ============================================================
-# SECTION 4: PREDICTION (4 INPUTS & ACTION BUTTONS)
-# ============================================================
-st.markdown('<div class="section-title">4. Simple Transaction Input (Divided in 4 Groups)</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="section-title">4. Transaction Prediction</div>',
+    unsafe_allow_html=True,
+)
 
-# Action Buttons
-btn_c1, btn_c2, btn_c3 = st.columns(3)
+if "v_values" not in st.session_state:
+    st.session_state.v_values = {f"V{i}": 0.0 for i in range(1, 29)}
+if "time_val" not in st.session_state:
+    st.session_state.time_val = 50000.0
+if "amount_val" not in st.session_state:
+    st.session_state.amount_val = 100.0
 
-if btn_c1.button("⚡ Fill Legitimate Case", use_container_width=True):
-    st.session_state['time_val'] = 1000.0
-    st.session_state['amount_val'] = 150.0
-    st.session_state['g1'] = 0.0
-    st.session_state['g2'] = 0.0
-    st.session_state['g3'] = 0.0
-    st.session_state['g4'] = 0.0
 
-if btn_c2.button("🚨 Fill Fraudulent Case", use_container_width=True):
-    st.session_state['time_val'] = 406.0
-    st.session_state['amount_val'] = 1150.0
-    st.session_state['g1'] = -10.0
-    st.session_state['g2'] = -15.0
-    st.session_state['g3'] = -12.0
-    st.session_state['g4'] = -5.0
-
-if btn_c3.button("🔄 Reset Inputs", use_container_width=True):
-    st.session_state['time_val'] = 50000.0
-    st.session_state['amount_val'] = 100.0
-    st.session_state['g1'] = 0.0
-    st.session_state['g2'] = 0.0
-    st.session_state['g3'] = 0.0
-    st.session_state['g4'] = 0.0
-    if "prediction_result" in st.session_state:
-        del st.session_state["prediction_result"]
-
-p_col1, p_col2 = st.columns(2)
-with p_col1:
-    time_input = st.number_input("⏱️ Transaction Time", min_value=0.0, value=st.session_state.get('time_val', 50000.0))
-with p_col2:
-    amount_input = st.number_input("💰 Transaction Amount (₹)", min_value=0.0, value=st.session_state.get('amount_val', 100.0), format="%.2f")
-
-st.subheader("⚙️ Main Anomaly Risk Indicators (Divided in 4 Inputs)")
-
-v_col1, v_col2, v_col3, v_col4 = st.columns(4)
-
-with v_col1:
-    group1 = st.number_input("🔹 Group 1 (V1-V7 Risk)", value=st.session_state.get('g1', 0.0), format="%.2f")
-with v_col2:
-    group2 = st.number_input("⚠️ Group 2 (V8-V14 Critical Risk)", value=st.session_state.get('g2', 0.0), format="%.2f")
-with v_col3:
-    group3 = st.number_input("🔹 Group 3 (V15-V21 Risk)", value=st.session_state.get('g3', 0.0), format="%.2f")
-with v_col4:
-    group4 = st.number_input("🔹 Group 4 (V22-V28 Risk)", value=st.session_state.get('g4', 0.0), format="%.2f")
-
-predict_click = st.button("🔍 Predict Transaction", type="primary", use_container_width=True)
-
-# Prediction Logic
-if predict_click:
-    input_dict = {"Time": time_input}
-    
-    for i in range(1, 8): input_dict[f"V{i}"] = group1
-    for i in range(8, 15): input_dict[f"V{i}"] = group2
-    for i in range(15, 22): input_dict[f"V{i}"] = group3
-    for i in range(22, 29): input_dict[f"V{i}"] = group4
-    
-    input_dict["Amount"] = amount_input
-    
-    input_df = pd.DataFrame([input_dict])[feature_names]
-
-    if model_choice == "Logistic Regression":
-        input_scaled = scaler.transform(input_df)
-        prediction = selected_model.predict(input_scaled)[0]
-        prob = selected_model.predict_proba(input_scaled)[0][1] * 100
-    else:
-        prediction = selected_model.predict(input_df)[0]
-        prob = selected_model.predict_proba(input_df)[0][1] * 100
-
-    risk = "HIGH" if prob >= 70 else ("MEDIUM" if prob >= 30 else "LOW")
-    st.session_state["prediction_result"] = {
-        "prediction": int(prediction),
-        "prob": prob,
-        "risk": risk,
-        "amount": amount_input,
-        "model": model_choice
+def set_demo(values, time_value, amount_value):
+    st.session_state.time_val = float(time_value)
+    st.session_state.amount_val = float(amount_value)
+    st.session_state.v_values = {
+        f"V{i}": float(values[i - 1]) for i in range(1, 29)
     }
 
-# ============================================================
-# SECTION 5: RESULT
-# ============================================================
-st.markdown('<div class="section-title">5. Result</div>', unsafe_allow_html=True)
 
-res = st.session_state.get("prediction_result")
-if res:
-    if res["prediction"] == 1 or res["prob"] >= 50:
-        st.markdown(f'''
-            <div class="result-card fraud">
-                <h1>🚨 FRAUDULENT TRANSACTION</h1>
-                <div class="risk-number">{res["prob"]:.2f}%</div>
-                <p>Fraud Risk Probability</p>
-            </div>
-        ''', unsafe_allow_html=True)
-    else:
-        st.markdown(f'''
-            <div class="result-card legitimate">
-                <h1>✅ LEGITIMATE TRANSACTION</h1>
-                <div class="risk-number">{res["prob"]:.2f}%</div>
-                <p>Fraud Risk Probability</p>
-            </div>
-        ''', unsafe_allow_html=True)
+b1, b2, b3 = st.columns(3)
+
+with b1:
+    if st.button("⚡ Fill Demo Case", use_container_width=True):
+        set_demo([0.0] * 28, 1000.0, 150.0)
+        st.rerun()
+
+with b2:
+    if st.button("🚨 Fill High-Risk Demo", use_container_width=True):
+        set_demo([-5.0, -2.0, -1.0, -3.0, -1.0, -2.0, -1.0,
+                  -4.0, -2.0, -3.0, -1.0, -2.0, -1.0, -2.0,
+                  -3.0, -2.0, -1.0, -2.0, -3.0, -1.0, -2.0,
+                  -3.0, -2.0, -1.0, -2.0, -3.0, -1.0, -2.0], 406.0, 1150.0)
+        st.rerun()
+
+with b3:
+    if st.button("🔄 Reset", use_container_width=True):
+        set_demo([0.0] * 28, 50000.0, 100.0)
+        st.session_state.pop("prediction_result", None)
+        st.rerun()
+
+time_input = st.number_input(
+    "⏱️ Transaction Time",
+    min_value=0.0,
+    value=float(st.session_state.time_val),
+)
+amount_input = st.number_input(
+    "💰 Transaction Amount",
+    min_value=0.0,
+    value=float(st.session_state.amount_val),
+    format="%.2f",
+)
+
+st.subheader("🔎 V1–V28 Transaction Features")
+st.caption(
+    "The previous version grouped seven V-features into one value. "
+    "This version uses all 28 model features individually."
+)
+
+v_values = {}
+for start in (1, 8, 15, 22):
+    with st.expander(f"Features V{start}–V{start + 6}", expanded=(start == 1)):
+        cols = st.columns(4)
+        for offset, i in enumerate(range(start, start + 7)):
+            with cols[offset % 4]:
+                v_values[f"V{i}"] = st.number_input(
+                    f"V{i}",
+                    value=float(st.session_state.v_values.get(f"V{i}", 0.0)),
+                    format="%.6f",
+                    key=f"input_V{i}",
+                )
+
+predict_click = st.button(
+    "🔍 Predict Transaction",
+    type="primary",
+    use_container_width=True,
+)
+
+if predict_click:
+    input_dict = {"Time": time_input}
+    input_dict.update(v_values)
+    input_dict["Amount"] = amount_input
+
+    try:
+        input_df = pd.DataFrame([input_dict])[feature_names]
+
+        if model_choice == "Logistic Regression":
+            model_input = scaler.transform(input_df)
+        else:
+            model_input = input_df
+
+        prediction = int(selected_model.predict(model_input)[0])
+        probability = float(selected_model.predict_proba(model_input)[0][1] * 100)
+
+        risk = "HIGH" if probability >= 70 else "MEDIUM" if probability >= 30 else "LOW"
+        status = "FRAUD" if prediction == 1 else "LEGITIMATE"
+
+        st.session_state.prediction_result = {
+            "prediction": prediction,
+            "prob": probability,
+            "risk": risk,
+            "status": status,
+            "amount": amount_input,
+            "model": model_choice,
+        }
+    except Exception as exc:
+        st.error("Prediction failed.")
+        st.exception(exc)
+
+st.markdown('<div class="section-title">5. Prediction Result</div>', unsafe_allow_html=True)
+
+result = st.session_state.get("prediction_result")
+
+if result:
+    is_fraud = result["prediction"] == 1
+    card_class = "fraud" if is_fraud else "legitimate"
+    title = "🚨 FRAUDULENT TRANSACTION" if is_fraud else "✅ LEGITIMATE TRANSACTION"
+
+    st.markdown(
+        f"""
+        <div class="result-card {card_class}">
+            <h1>{title}</h1>
+            <div class="risk-number">{result["prob"]:.2f}%</div>
+            <p>Fraud Probability</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     r1, r2, r3, r4 = st.columns(4)
-    r1.metric("Transaction Amount", f"₹{res['amount']:,.2f}")
-    r2.metric("Status", "FRAUD" if res["prediction"] == 1 or res["prob"] >= 50 else "LEGITIMATE")
-    r3.metric("Risk Level", res["risk"])
-    r4.metric("Selected Model", res["model"])
+    r1.metric("Transaction Amount", f"₹{result['amount']:,.2f}")
+    r2.metric("Status", result["status"])
+    r3.metric("Risk Level", result["risk"])
+    r4.metric("Selected Model", result["model"])
 
-# ============================================================
-# SECTION 6: MODEL PERFORMANCE
-# ============================================================
 st.markdown('<div class="section-title">6. Model Performance</div>', unsafe_allow_html=True)
 
-m_col1, m_col2 = st.columns(2)
-with m_col1:
-    st.subheader("Confusion Matrix")
-    cm = np.array(selected_metrics["confusion_matrix"])
-    cm_df = pd.DataFrame(cm, index=["Actual Legitimate", "Actual Fraud"], columns=["Pred Legitimate", "Pred Fraud"])
-    st.dataframe(cm_df, use_container_width=True)
+if selected_metrics:
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Precision", f"{selected_metrics.get('precision', 0):.4f}")
+    m2.metric("Recall", f"{selected_metrics.get('recall', 0):.4f}")
+    m3.metric("F1-Score", f"{selected_metrics.get('f1', 0):.4f}")
+    m4.metric("ROC-AUC", f"{selected_metrics.get('roc_auc', 0):.4f}")
 
-with m_col2:
-    st.subheader(f"{model_choice} Evaluation Metrics")
-    st.metric("Precision", f"{selected_metrics['precision']:.4f}")
-    st.metric("Recall", f"{selected_metrics['recall']:.4f}")
-    st.metric("F1-Score", f"{selected_metrics['f1']:.4f}")
-    st.metric("ROC-AUC", f"{selected_metrics['roc_auc']:.4f}")
+    cm = selected_metrics.get("confusion_matrix")
+    if cm:
+        st.subheader("Confusion Matrix")
+        cm_array = np.array(cm)
+        cm_df = pd.DataFrame(
+            cm_array,
+            index=["Actual Legitimate", "Actual Fraud"],
+            columns=["Pred Legitimate", "Pred Fraud"],
+        )
+        st.dataframe(cm_df, use_container_width=True)
 
-# ============================================================
-# SECTION 7: DATA TABLE
-# ============================================================
-st.markdown('<div class="section-title">7. Data Table (Sample Transactions)</div>', unsafe_allow_html=True)
+if df is not None and {"Time", "Amount", "Class"}.issubset(df.columns):
+    st.markdown(
+        '<div class="section-title">7. Sample Transactions</div>',
+        unsafe_allow_html=True,
+    )
+    sample_df = df[["Time", "Amount", "Class"]].tail(50).copy()
+    sample_df["Status"] = sample_df["Class"].map(
+        {0: "Legitimate", 1: "Fraud"}
+    )
+    st.dataframe(sample_df, use_container_width=True, hide_index=True)
 
-recent_df = df[["Time", "Amount", "Class"]].tail(50).copy()
-recent_df["Prediction"] = recent_df["Class"].map({0: "Legitimate", 1: "Fraud"})
-st.dataframe(recent_df, use_container_width=True, hide_index=True)
+st.markdown(
+    '<div class="section-title">8. Feature Importance</div>',
+    unsafe_allow_html=True,
+)
+
+feature_importance_path = os.path.join(
+    ROOT_DIR,
+    "Model",
+    "saved_models",
+    "feature_importance.csv",
+)
+
+try:
+    if os.path.isfile(feature_importance_path):
+        fi = pd.read_csv(feature_importance_path)
+        if not fi.empty and {"Feature", "Importance"}.issubset(fi.columns):
+            st.bar_chart(fi.head(10).set_index("Feature"))
+    else:
+        st.caption("Feature importance file is not available locally.")
+except Exception as exc:
+    st.caption(f"Feature importance could not be displayed: {exc}")
