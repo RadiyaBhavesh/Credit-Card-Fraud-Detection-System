@@ -1,3 +1,7 @@
-Dataset/creditcard.csv 
-.idea/ 
-venv/ 
+venv/
+.venv/
+.idea/
+__pycache__/
+*.pyc
+.DS_Store
+desktop.ini
