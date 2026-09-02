@@ -137,8 +137,8 @@ st.markdown(
     """
     <style>
     .stApp {
-        background: linear-gradient(135deg, #f5f7ff 0%, #eef4ff 50%, #f8f5ff 100%);
-        color: #1e293b;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); /* Deep Navy/Slate */
+        color: #f1f5f9;
     }
     .block-container {
         max-width: 1450px;
