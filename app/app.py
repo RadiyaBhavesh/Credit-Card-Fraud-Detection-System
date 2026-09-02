@@ -25,7 +25,7 @@ MODEL_PATHS = [
     os.path.join(BASE_DIR, "model", "saved_models", "fraud_detection_all_models.pkl"),
     os.path.join(BASE_DIR, "saved_models", "fraud_detection_all_models.pkl"),
     os.path.join(BASE_DIR, "fraud_detection_all_models.pkl"),
-    r"..\Model\saved_models\fraud_detection_all_models.pkl"
+    r"../Model/saved_models/fraud_detection_all_models.pkl"
 ]
 
 DATASET_PATHS = [
