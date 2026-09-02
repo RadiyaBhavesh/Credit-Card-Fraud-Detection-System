@@ -156,13 +156,55 @@ st.markdown(
         -webkit-text-fill-color: transparent;
     }
     .section-title {
-        color: #1e3a8a;
+        color: #173b8f !important;
         font-size: 20px;
-        font-weight: 750;
+        font-weight: 800;
         margin-top: 25px;
         margin-bottom: 15px;
-        padding-left: 10px;
-        border-left: 5px solid #6366f1;
+        padding: 10px 12px;
+        border-left: 6px solid #6366f1;
+        background: rgba(99, 102, 241, 0.08);
+        border-radius: 0 12px 12px 0;
+    }
+    div[data-testid="stMetric"] {
+        background: linear-gradient(135deg, #ffffff, #eef2ff);
+        border: 1px solid #c7d2fe;
+        border-radius: 16px;
+        padding: 16px 14px;
+        box-shadow: 0 6px 18px rgba(30, 64, 175, 0.10);
+        min-height: 105px;
+    }
+    div[data-testid="stMetricLabel"] p {
+        color: #334155 !important;
+        font-weight: 700 !important;
+        opacity: 1 !important;
+    }
+    div[data-testid="stMetricValue"] {
+        color: #172554 !important;
+        font-weight: 850 !important;
+    }
+    div[data-testid="stMetricDelta"] {
+        color: #475569 !important;
+    }
+    div[data-testid="stExpander"] {
+        background: rgba(255,255,255,0.72);
+        border: 1px solid #c7d2fe;
+        border-radius: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 4px 14px rgba(30, 64, 175, 0.07);
+    }
+    div[data-testid="stExpander"] summary {
+        font-weight: 800;
+        color: #1e3a8a;
+    }
+    div[data-testid="stButton"] > button {
+        border-radius: 12px;
+        font-weight: 750;
+        min-height: 46px;
+    }
+    div[data-testid="stNumberInput"] label {
+        color: #1e3a8a !important;
+        font-weight: 700 !important;
     }
     .result-card {
         text-align: center;
@@ -339,7 +381,7 @@ with b2:
         st.rerun()
 
 with b3:
-    if st.button("🔄 Reset All Inputs", use_container_width=True):
+    if st.button("🧹 Reset / Clear All", use_container_width=True):
         clear_prediction_inputs()
         st.rerun()
 
@@ -358,28 +400,28 @@ amount_input = st.number_input(
 )
 
 st.subheader("🔎 Transaction Features")
-st.caption("V1–V28 are divided into 4 groups. Each group contains 7 individual inputs.")
+st.caption("V1–V28 are divided into 4 groups. Each group contains exactly 7 individual inputs. Enter the values from your transaction record.")
 
 v_values = {}
 groups = [
-    (1, 7, "Group 1 — V1 to V7"),
-    (8, 14, "Group 2 — V8 to V14"),
-    (15, 21, "Group 3 — V15 to V21"),
-    (22, 28, "Group 4 — V22 to V28"),
+    (1, 7, "📘 Group 1 — V1 to V7"),
+    (8, 14, "📗 Group 2 — V8 to V14"),
+    (15, 21, "📙 Group 3 — V15 to V21"),
+    (22, 28, "📕 Group 4 — V22 to V28"),
 ]
 
 for start, end, label in groups:
-    st.markdown(f"**{label}**")
-    cols = st.columns(4)
-    for offset, i in enumerate(range(start, end + 1)):
-        with cols[offset % 4]:
-            v_values[f"V{i}"] = st.number_input(
-                f"V{i}",
-                value=float(st.session_state.get(f"input_V{i}", 0.0)),
-                format="%.6f",
-                key=f"input_V{i}",
-            )
-    st.write("")
+    with st.expander(label, expanded=(start == 1)):
+        cols = st.columns(4)
+        for offset, i in enumerate(range(start, end + 1)):
+            with cols[offset % 4]:
+                v_values[f"V{i}"] = st.number_input(
+                    f"V{i}",
+                    value=float(st.session_state.get(f"input_V{i}", 0.0)),
+                    format="%.6f",
+                    key=f"input_V{i}",
+                    help=f"Transaction feature V{i}",
+                )
 
 predict_click = st.button(
     "🔍 Predict Transaction",
