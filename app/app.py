@@ -136,145 +136,235 @@ if dataset_error:
 st.markdown(
     """
     <style>
-    .stApp {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); /* Deep Navy/Slate */
-        color: #f1f5f9;
+      /* @import dynamic font for high-tech premium feel */
+         @import url('https://googleapis.com');
+
+    /* 1. Global Setup with Animation */
+    [data-testid="stApp"] {
+        background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 70%, #020617 100%) !important;
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
     }
+    
+    /* Clean Sidebar syncing with Dark Theme */
+    [data-testid="stSidebar"] {
+        background-color: #0b0f19 !important;
+        border-right: 1px solid #1e293b !important;
+    }
+
     .block-container {
         max-width: 1450px;
-        padding-left: 2rem;
-        padding-right: 2rem;
+        padding: 2.5rem 2rem !important;
+        animation: fadeIn 0.8s ease-out;
     }
+
+    /* 2. Pro Title Text with Shimmer/Gradient Effect */
     .dashboard-title {
-        font-size: 32px;
+        font-size: 36px;
         font-weight: 800;
         margin-bottom: 5px;
+        letter-spacing: -0.5px;
     }
+    
     .title-text {
-        background: linear-gradient(90deg, #2563eb, #7c3aed);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+        background-size: 200% auto;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        animation: shine 4s linear infinite;
     }
+
+    /* 3. High-Tech Glass Section Header */
     .section-title {
-        color: #173b8f !important;
-        font-size: 20px;
-        font-weight: 800;
-        margin-top: 25px;
-        margin-bottom: 15px;
-        padding: 10px 12px;
-        border-left: 6px solid #6366f1;
-        background: rgba(99, 102, 241, 0.08);
+        color: #f8fafc !important;
+        font-size: 18px;
+        font-weight: 700;
+        margin-top: 35px;
+        margin-bottom: 20px;
+        padding: 10px 16px;
+        border-left: 4px solid #6366f1;
+        background: linear-gradient(90deg, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0) 100%);
         border-radius: 0 12px 12px 0;
+        box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.05);
     }
+
+    /* 4. Glassmorphism Cyber KPI Cards with Hover Animation */
     .kpi-card {
-        min-height: 150px;
-        padding: 18px 16px;
-        border-radius: 18px;
-        background: linear-gradient(145deg, #ffffff 0%, #eef2ff 100%);
-        border: 1px solid #c7d2fe;
-        box-shadow: 0 8px 22px rgba(30, 64, 175, 0.12);
+        min-height: 145px;
+        padding: 22px 18px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.07) !important;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         text-align: center;
-        margin-bottom: 10px;
+        margin-bottom: 15px;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+        overflow: hidden;
     }
+    
+    /* Glowing card border on hover */
+    .kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        border-radius: 20px;
+        padding: 1px;
+        background: linear-gradient(135deg, rgba(99,102,241,0.4), rgba(56,189,248,0));
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        opacity: 0;
+        transition: opacity 0.4s ease;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-5px) scale(1.01);
+        border-color: rgba(255, 255, 255, 0.15) !important;
+        box-shadow: 0 12px 40px rgba(99, 102, 241, 0.15) !important;
+    }
+    
+    .kpi-card:hover::before {
+        opacity: 1;
+    }
+    
     .kpi-icon {
-        font-size: 27px;
-        margin-bottom: 5px;
+        font-size: 28px;
+        margin-bottom: 8px;
+        filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.3));
     }
+    
     .kpi-heading {
-        color: #1e3a8a !important;
-        font-size: 13px;
-        font-weight: 850;
-        letter-spacing: 0.4px;
-        opacity: 1 !important;
+        color: #94a3b8 !important;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
     }
+    
     .kpi-value {
-        color: #111827 !important;
-        font-size: 30px;
-        line-height: 1.25;
-        font-weight: 900;
-        margin-top: 8px;
+        color: #ffffff !important;
+        font-size: 34px;
+        line-height: 1.2;
+        font-weight: 800;
+        margin-top: 6px;
+        letter-spacing: -0.5px;
     }
+    
     .kpi-subtitle {
         color: #64748b !important;
         font-size: 11px;
-        font-weight: 600;
+        font-weight: 500;
         margin-top: 5px;
     }
+
+    /* 5. Streamlit Native Elements Global Dark Sync */
     div[data-testid="stMetricLabel"] p {
-        color: #334155 !important;
-        font-weight: 700 !important;
-        opacity: 1 !important;
+        color: #94a3b8 !important;
+        font-weight: 600 !important;
     }
+    
     div[data-testid="stMetricValue"] {
-        color: #172554 !important;
-        font-weight: 850 !important;
+        color: #ffffff !important;
+        font-weight: 800 !important;
     }
-    div[data-testid="stMetricDelta"] {
-        color: #475569 !important;
+    
+    /* Input & Expander Glass Theme */
+    div[data-testid="stExpander"], div[data-testid="stSelectbox"] > div {
+        background: rgba(30, 41, 59, 0.5) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 14px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     }
-    div[data-testid="stExpander"] {
-        background: rgba(255,255,255,0.72);
-        border: 1px solid #c7d2fe;
-        border-radius: 16px;
-        margin-bottom: 12px;
-        box-shadow: 0 4px 14px rgba(30, 64, 175, 0.07);
-    }
+    
     div[data-testid="stExpander"] summary {
-        font-weight: 800;
-        color: #1e3a8a;
+        font-weight: 600;
+        color: #f1f5f9;
     }
+    
+    /* Glowing Action Buttons with Pulse Effect */
     div[data-testid="stButton"] > button {
+        background: linear-gradient(90deg, #4f46e5 0%, #3b82f6 100%) !important;
+        color: white !important;
         border-radius: 12px;
-        font-weight: 750;
+        font-weight: 700;
+        border: none;
         min-height: 46px;
+        letter-spacing: 0.3px;
+        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    div[data-testid="stNumberInput"] label {
-        color: #1e3a8a !important;
-        font-weight: 700 !important;
+    
+    div[data-testid="stButton"] > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 25px rgba(79, 70, 229, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.1);
+        background: linear-gradient(90deg, #5a52e6 0%, #4f8cf7 100%) !important;
     }
+
+    /* Text Colors inside Inputs */
+    label, p, span {
+        color: #cbd5e1 !important;
+    }
+
+    /* 6. High-Stakes Vibrant Prediction Cards */
     .result-card {
         text-align: center;
-        padding: 25px;
-        border-radius: 18px;
-        margin-top: 15px;
-        color: white;
+        padding: 30px 20px;
+        border-radius: 20px;
+        margin-top: 20px;
+        position: relative;
     }
+    
     .result-card h1 {
         font-size: 26px;
-        margin-bottom: 10px;
-        color: white;
-    }
-    .risk-number {
-        font-size: 40px;
         font-weight: 800;
-        color: white;
+        margin-bottom: 8px;
+        color: #ffffff !important;
     }
+    
+    .risk-number {
+        font-size: 44px;
+        font-weight: 900;
+        color: #ffffff !important;
+        letter-spacing: -1px;
+    }
+    
+    /* Secure State: Emerald Cyber Glow */
     .legitimate {
-        background: linear-gradient(135deg, #0f5132, #198754);
-        border: 2px solid #20c997;
+        background: linear-gradient(135deg, #064e3b 0%, #059669 100%) !important;
+        border: 1px solid rgba(16, 185, 129, 0.3) !important;
+        box-shadow: 0 15px 35px rgba(5, 150, 105, 0.25) !important;
     }
+    
+    /* Fraud State: Crimson Red Alert Glow (Animated Pulse) */
     .fraud {
-        background: linear-gradient(135deg, #842029, #dc3545);
-        border: 2px solid #ff6b6b;
+        background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%) !important;
+        border: 1px solid rgba(239, 68, 68, 0.3) !important;
+        box-shadow: 0 15px 35px rgba(220, 38, 38, 0.3) !important;
+        animation: pulseAlert 2s infinite alternate;
     }
+
+    /* 7. Keyframe Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes shine {
+        to { background-position: 200% center; }
+    }
+
+    @keyframes pulseAlert {
+        0% { box-shadow: 0 15px 35px rgba(220, 38, 38, 0.3); }
+        100% { box-shadow: 0 15px 40px rgba(220, 38, 38, 0.55), 0 0 0 4px rgba(220, 38, 38, 0.1); }
+    }
+
+    /* Responsive Logic */
     @media (max-width: 768px) {
-        .block-container {
-            padding-left: 0.8rem !important;
-            padding-right: 0.8rem !important;
-        }
-        .dashboard-title {
-            font-size: 24px !important;
-            text-align: center;
-        }
-        .section-title {
-            font-size: 18px !important;
-        }
-        div[data-testid="column"] {
-            width: 100% !important;
-            flex: 1 1 100% !important;
-            min-width: 100% !important;
-            margin-bottom: 10px;
-        }
+        .block-container { padding: 1.5rem 1rem !important; }
+        .dashboard-title { font-size: 28px !important; text-align: center; }
+        div[data-testid="column"] { width: 100% !important; flex: 1 1 100% !important; }
     }
     </style>
     """,
