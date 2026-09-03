@@ -9,7 +9,7 @@ Executive Overview
 Key Features
 System Architecture
 Dataset Specifications
-Project Directory Structure
+Project Structure
 Installation & Quickstart
 Model Training & Benchmarking
 Interactive Web Dashboard
@@ -50,33 +50,33 @@ Class (Target):
 📁 Project Directory Structure
 
 Credit-Card-Fraud-Detection-System/
+├── .gitattributes
+├── .gitignore
+├── README.md
+├── requirements.txt
+│
 ├── Dataset/
-│   ├── creditcard.csv                 # Raw or benchmark transaction data
-│   └── generate_sample_data.py        # Dataset validation & synthetic generator utility
+│   └── creditcard.csv
 │
 ├── Model/
-│   ├── train.py                       # ML model training and evaluation pipeline
-│   └── saved_models/                  # Serialized model artifacts
-│       ├── fraud_detection_all_models.pkl
-│       ├── scaler.pkl
-│       ├── logistic_model.pkl
-│       ├── random_forest_model.pkl
+│   ├── Model_train.py
+│   ├── amount_distribution.png
+│   ├── fraud_vs_legitimate.png
+│   │
+│   └── saved_models/
 │       ├── best_model.pkl
+│       ├── feature_importance.csv
 │       ├── feature_names.pkl
+│       ├── fraud_detection_all_models.pkl
+│       ├── logistic_model.pkl
 │       ├── metrics.pkl
-│       └── feature_importance.csv
+│       ├── random_forest_model.pkl
+│       └── scaler.pkl
 │
-├── App/
-│   └── app.py                         # Streamlit dashboard implementation
-│
-├── app.py                             # Root runner entry point
-├── requirements.txt                   # Production dependency specifications
-├── README.md                          # Project documentation
-│
-└── docs/
-    ├── ARCHITECTURE.md                # System design & data flow documentation
-    ├── MODEL_REPORT.md                # Algorithmic benchmarks, cost matrix & evaluation
-    └── USER_GUIDE.md                  # Comprehensive user instructions & manual
+└── app/
+    └── app.py
+
+> The structure above reflects the current GitHub repository.
 🚀 Installation & Quickstart
 1. Clone or Open the Repository
 bash
@@ -100,7 +100,7 @@ To run the complete data preprocessing, training, and artifact serialization pip
 
 bash
 
-python Model/train.py
+python Model/Model_train.py
 Pipeline Execution Output:
 Loads and validates Dataset/creditcard.csv.
 Cleans duplicates and verifies 30 numerical input features.
@@ -108,7 +108,7 @@ Conducts a stratified 80/20 train/test split.
 Fits a StandardScaler on training data.
 Trains Logistic Regression and Random Forest Classifier with class_weight='balanced'.
 Evaluates test set performance across Precision, Recall, F1-Score, and ROC-AUC.
-Saves all 8 model bundles to Model/saved_models/.
+Saves the trained model artifacts to `Model/saved_models/`.
 Benchmark Results (Hold-out Test Set)
 Metric	Logistic Regression (Balanced)	Random Forest (Balanced)
 Accuracy	~97.5%	~99.9%
@@ -118,7 +118,7 @@ F1-Score	~0.15 – 0.18	~0.85 – 0.91
 ROC-AUC	~0.970	~0.985
 Note: Random Forest achieves superior F1-Score and precision, minimizing customer-facing false alarms while retaining strong fraud recall.
 
-## 🧾 Transaction Prediction — What to Enter
+## 🧾 Transaction Prediction Inputs
 
 The Streamlit prediction form follows the same feature structure used by the trained model:
 
@@ -149,8 +149,8 @@ Launch the Streamlit web dashboard:
 
 bash
 
-streamlit run app.py
-(Or alternatively: streamlit run App/app.py)
+streamlit run app/app.py
+
 
 Once started, open your browser at http://localhost:8501.
 
