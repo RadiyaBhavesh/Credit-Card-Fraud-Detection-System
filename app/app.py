@@ -688,9 +688,26 @@ feature_importance_path = os.path.join(
 try:
     if os.path.isfile(feature_importance_path):
         fi = pd.read_csv(feature_importance_path)
-        if not fi.empty and {"Feature", "Importance"}.issubset(fi.columns):
-            st.bar_chart(fi.head(10).set_index("Feature"))
     else:
-        st.caption("Feature importance file is not available locally.")
+        fi_response = requests.get(
+            f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/{BRANCH}/Model/saved_models/feature_importance.csv",
+            timeout=60,
+        )
+        fi_response.raise_for_status()
+        fi = pd.read_csv(io.BytesIO(fi_response.content))
+
+    if fi.empty or not {"Feature", "Importance"}.issubset(fi.columns):
+        st.warning("Feature importance file has an invalid format.")
+    else:
+        fi = fi[["Feature", "Importance"]].copy()
+        fi["Importance"] = pd.to_numeric(fi["Importance"], errors="coerce")
+        fi = fi.dropna(subset=["Importance"]).sort_values("Importance", ascending=False)
+
+        if not fi.empty:
+            top_fi = fi.head(10)
+            st.bar_chart(top_fi.set_index("Feature"))
+            st.dataframe(top_fi, use_container_width=True, hide_index=True)
+        else:
+            st.warning("No valid feature importance values were found.")
 except Exception as exc:
-    st.caption(f"Feature importance could not be displayed: {exc}")
+    st.warning(f"Feature importance could not be loaded: {exc}")
