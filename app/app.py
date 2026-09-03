@@ -690,10 +690,13 @@ try:
         fi = pd.read_csv(feature_importance_path)
     else:
         fi_response = requests.get(
-            f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/{BRANCH}/Model/saved_models/feature_importance.csv",
+            f"https://media.githubusercontent.com/media/{REPO_OWNER}/{REPO_NAME}/{BRANCH}/Model/saved_models/feature_importance.csv",
             timeout=60,
+            allow_redirects=True,
         )
         fi_response.raise_for_status()
+        if _is_lfs_pointer(fi_response.content):
+            raise RuntimeError("GitHub returned the Git LFS pointer instead of the CSV.")
         fi = pd.read_csv(io.BytesIO(fi_response.content))
 
     if fi.empty or not {"Feature", "Importance"}.issubset(fi.columns):
