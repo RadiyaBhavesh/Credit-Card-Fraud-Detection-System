@@ -36,7 +36,80 @@ One-Click Presets: Test legitimate and high-risk fraud cases with a single click
 Real-Time Risk Scoring: Dynamic result cards displaying fraud probability percentage, status badges, and risk levels (HIGH, MEDIUM, LOW).
 Model Interpretability: Feature importance bar charts highlighting key fraud indicators (such as V14, V10, V12, V17, V4).
 🏛️ System Architecture
-Mermaid diagram
+
+### 🔄 End-to-End Fraud Detection Flow
+
+```mermaid
+flowchart TD
+    A[💳 Credit Card Transaction] --> B[📂 Dataset / Input]
+    B --> C[✅ Data Validation]
+    C --> D[🧹 Cleaning & Preprocessing]
+    D --> E[⚖️ Handle Class Imbalance]
+    E --> F[📏 Feature Scaling]
+    F --> G{🤖 Model Training}
+    G --> H[Logistic Regression]
+    G --> I[Random Forest]
+    H --> J[📊 Model Evaluation]
+    I --> J
+    J --> K[💾 Save Model Artifacts]
+    K --> L[🌐 Streamlit Dashboard]
+    L --> M[🧾 Time + V1–V28 + Amount]
+    M --> N[🔮 Fraud Probability]
+    N --> O{Risk Classification}
+    O --> P[🟢 LOW]
+    O --> Q[🟡 MEDIUM]
+    O --> R[🔴 HIGH]
+```
+
+### 🧩 Prediction Flow — Simple View
+
+```text
+Transaction
+    │
+    ▼
+Time + V1–V28 + Amount
+    │
+    ▼
+Preprocessing / Scaler
+    │
+    ▼
+Trained ML Model
+    │
+    ├── Logistic Regression
+    │
+    └── Random Forest
+    │
+    ▼
+Fraud Probability
+    │
+    ▼
+┌─────────────────────────────┐
+│   Legitimate / Fraud        │
+│   LOW / MEDIUM / HIGH Risk  │
+└─────────────────────────────┘
+```
+
+### 🔢 V1–V28 Feature Groups
+
+```text
+V1 ─ V7    → Group 1
+V8 ─ V14   → Group 2
+V15 ─ V21  → Group 3
+V22 ─ V28  → Group 4
+```
+
+### 🔗 Data-to-Prediction Flow
+
+```mermaid
+flowchart LR
+    A[Dataset] --> B[Preprocessing]
+    B --> C[Training]
+    C --> D[Saved Models]
+    D --> E[Streamlit]
+    E --> F[Prediction]
+    F --> G[Fraud / Legitimate]
+```
+
 📊 Dataset Specifications
 The system is configured around the standard European credit card fraud benchmark dataset:
 
