@@ -118,6 +118,32 @@ F1-Score	~0.15 – 0.18	~0.85 – 0.91
 ROC-AUC	~0.970	~0.985
 Note: Random Forest achieves superior F1-Score and precision, minimizing customer-facing false alarms while retaining strong fraud recall.
 
+## 🧾 Transaction Prediction — What to Enter
+
+The Streamlit prediction form follows the same feature structure used by the trained model:
+
+- **Time** → seconds elapsed since the first transaction in the dataset.
+- **V1–V28** → PCA-transformed/anonymized numerical features. These are **not** card number, CVV, PIN, city, or customer details. Their values come from the dataset/model feature pipeline.
+- **Amount** → transaction amount.
+- **Class** → target column in the dataset (0 = Legitimate, 1 = Fraud). Do not enter Class for a new prediction; the model predicts it.
+
+### V1–V28 input groups
+
+The dashboard divides the 28 PCA features into four groups only for easier entry:
+
+1. **Group 1:** V1–V7
+2. **Group 2:** V8–V14
+3. **Group 3:** V15–V21
+4. **Group 4:** V22–V28
+
+Each V-feature must contain the **actual numeric value from a transaction row in the same dataset format**. Do not guess or enter random V-values, because the prediction may not be meaningful.
+
+For a quick test, use the dashboard's **Fill Legitimate Demo** or **Fill High-Risk Fraud Demo** preset. Use **Reset / Clear Inputs** to return the form to neutral values.
+
+**Model input order:** Time, V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15, V16, V17, V18, V19, V20, V21, V22, V23, V24, V25, V26, V27, V28, Amount
+
+> **Important:** V1–V28 are PCA-transformed features used for privacy-preserving machine learning. Their individual real-world meanings are not directly interpretable from the raw dataset.
+
 💻 Interactive Web Dashboard
 Launch the Streamlit web dashboard:
 
